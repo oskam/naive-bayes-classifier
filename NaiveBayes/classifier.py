@@ -29,13 +29,17 @@ X_test = sc.transform(X_test)
 # Fitting Naive Bayes Classification to the Training set with linear kernel
 from sklearn.naive_bayes import GaussianNB
 nvclassifier = GaussianNB()
-nvclassifier.fit(X_train, y_train)
+nvclassifier.fit(X_train, y_train).predict(X_train)
+
+# y_pred = nvclassifier.fit(X_train, y_train).predict(X_train)
+# print(f"Number of mislabeled points out of a total {X_train.shape[0]:d} points : {(y_train != y_pred).sum():d}")
+
 
 print(nvclassifier)
 
 # Predicting the Test set results
 y_pred = nvclassifier.predict(X_test)
-print(y_pred)
+# print(y_pred)
 
 #lets see the actual and predicted value side by side
 y_compare = np.vstack((y_test,y_pred)).T
