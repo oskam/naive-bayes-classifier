@@ -1,16 +1,14 @@
 import argparse
+import itertools
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import itertools
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, \
-    precision_recall_fscore_support
-from sklearn.naive_bayes import GaussianNB, MultinomialNB
-
 import seaborn as sns
-import matplotlib.pyplot as plt
-from matplotlib import cm as colormap
+
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_recall_fscore_support
+from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict, StratifiedKFold, KFold, LeaveOneOut
+from sklearn.naive_bayes import MultinomialNB
 
 # possible data types:
 # iris
@@ -24,7 +22,6 @@ from matplotlib import cm as colormap
 # ???
 DISC_EQUAL_WIDTH = 0
 DISC_EQUAL_FREQ = 1
-
 
 DATA_TYPE = "iris"
 
@@ -91,6 +88,18 @@ def classifier(args):
     # nvclassifier = GaussianNB()
     nvclassifier = MultinomialNB(alpha=1.0)
     nvclassifier.fit(X_train, y_train)
+
+    # Perform N-fold cross validation
+    cv_N = 10
+    # scores = cross_val_score(nvclassifier, X, y, cv=cv_N) #???
+
+    skf = StratifiedKFold(n_splits=cv_N)
+    kf = KFold(n_splits=cv_N)
+    loo = LeaveOneOut()
+    StratifiedKFold(n_splits=2, shuffle=False)
+    scores = cross_val_score(nvclassifier, X, y, cv=skf)
+
+    print("Cross - validated scores: " + str(scores))
 
     # Predicting the Test set results
     y_pred = nvclassifier.predict(X_test)
