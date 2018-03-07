@@ -1,8 +1,12 @@
+import argparse
+
 import numpy as np
 import pandas as pd
 import itertools
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, \
+    precision_recall_fscore_support
+from sklearn.naive_bayes import GaussianNB, MultinomialNB
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -18,74 +22,72 @@ from matplotlib import cm as colormap
 # equal_width_intervals
 # equal_frequency_intervals
 # ???
+DISC_EQUAL_WIDTH = 0
+DISC_EQUAL_FREQ = 1
 
-data_type = "iris"
+
+DATA_TYPE = "iris"
 
 # Importing the datasets
-iris_path = "/Users/oskam/PycharmProjects/classification/NaiveBayes/iris.txt"
-wine_path = "/Users/oskam/PycharmProjects/classification/NaiveBayes/wine.txt"
-glass_path = "/Users/oskam/PycharmProjects/classification/NaiveBayes/glass.txt"
-diabetes_path = "/Users/oskam/PycharmProjects/classification/NaiveBayes/diabetes.txt"
+datasets_info = {
+    'iris': {
+        'path': "NaiveBayes/iris.txt",
+        'drop_columns': [],
+        'class_column': 4
+    },
+    'wine': {
+        'path': "NaiveBayes/wine.txt",
+        'drop_columns': [],
+        'class_column': 0
+    },
+    'glass': {
+        'path': "NaiveBayes/glass.txt",
+        'drop_columns': [0],
+        'class_column': 9
+    },
+    'diabetes': {
+        'path': "NaiveBayes/diabetes.txt",
+        'drop_columns': [],
+        'class_column': 8
+    }
+}
 
 
-def classifier(data_type):
+def classifier(args):
+    dataset_info = datasets_info[args.data_type]
 
-    X =[]
-    y = []
+    df = pd.read_csv(dataset_info['path'])
+    for drop_col in dataset_info['drop_columns']:
+        df = df.drop(columns=df.columns[drop_col])
+    y = df[df.columns[dataset_info['class_column']]]
+    X = df.drop(columns=df.columns[dataset_info['class_column']])
 
-    if data_type == "iris":
-        path = "/Users/oskam/PycharmProjects/classification/NaiveBayes/iris.txt"
-        df = pd.read_csv(path)
-        X = df.iloc[:,:4].values
-        y = df['species'].values
-        # sns.pairplot(df, hue='species')
-        # plt.show()
+    if args.plot:
+        sns.pairplot(df, hue=df.columns[dataset_info['class_column']])
+        plt.show()
 
-    elif data_type == "wine":
-        path = "/Users/oskam/PycharmProjects/classification/NaiveBayes/wine.txt"
-        df = pd.read_csv(path)
-        class_column = 0
-        y = df[df.columns[class_column]].values
-        X = df.drop(columns=df.columns[class_column]).values
-        # sns.pairplot(df, hue='class')
-        # plt.show()
-
-    elif data_type == "glass":
-        path = "/Users/oskam/PycharmProjects/classification/NaiveBayes/glass.txt"
-        df = pd.read_csv(path)
-        df = df.drop(columns=df.columns[0])
-        class_column = 9
-        y = df[df.columns[class_column]].values
-        X = df.drop(columns=df.columns[class_column]).values
-
-    elif data_type == "diabetes":
-        path = "/Users/oskam/PycharmProjects/classification/NaiveBayes/diabetes.txt"
-        df = pd.read_csv(path)
-        class_column = 8
-        y = df[df.columns[class_column]].values
-        X = df.drop(columns=df.columns[class_column]).values
-        # sns.pairplot(df, hue='class')
-        # plt.show()
-    test = [2,2,3,4,6,6]
-    print(test)
-    print(discretization("equal_width_intervals", test, 3))
-    print(discretization("equal_frequency_intervals", test, 3))
+    # Discretize values before training
+    if args.discretization_bins > 0:
+        for column in X:
+            bins = discretization(args.discretization_mode, X[column], args.discretization_bins)
+            X[column] = bins
 
     # Splitting the dataset into the Training set and Test set
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20, random_state = 42)
-    print(X_train)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+    # print(X_train)
 
     # Create a new figure and set the figsize argument so we get square-ish plots of the 4 features.
-    # plt.figure(figsize=(15, 3))
+    if args.plot:
+        plt.figure(figsize=(15, 3))
 
     # Iterate over the features, creating a subplot with a histogram for each one.
-    # for feature in range(X_train.shape[1]):
-    #     plt.subplot(1, 8, feature + 1)
-    #     plt.hist(X_train[:, feature], 20)
-    # plt.show()
+    if args.plot:
+        for feature in range(X_train.shape[1]):
+            plt.subplot(1, len(X_train.columns), feature + 1)
+            plt.hist(X_train.values[:, feature], 20)
+        plt.show()
 
     # Fitting Naive Bayes Classification to the Training set with linear kernel
-    from sklearn.naive_bayes import GaussianNB, MultinomialNB
     # nvclassifier = GaussianNB()
     nvclassifier = MultinomialNB(alpha=1.0)
     nvclassifier.fit(X_train, y_train)
@@ -93,60 +95,49 @@ def classifier(data_type):
     # Predicting the Test set results
     y_pred = nvclassifier.predict(X_test)
 
-    #---------------------------------
+    # ---------------------------------
 
-    #lets see the actual and predicted value side by side
-    y_compare = np.vstack((y_test,y_pred)).T
+    # lets see the actual and predicted value side by side
+    y_compare = np.vstack((y_test, y_pred)).T
 
-    #actual value on the left side and predicted value on the right hand side
-    #printing the top 5 values
-    print(y_compare[:5,:])
+    # actual value on the left side and predicted value on the right hand side
+    # printing the top 5 values
+    print(y_compare[:5, :])
 
-    evaluation(y_test, y_pred, y)
-
-def discretization(type, X, k):
-    if type == "equal_width_intervals":
-        return pd.cut(X,k)
-    elif type == "equal_frequency_intervals":
-        return pd.qcut(X,k)
+    evaluation(y_test, y_pred, args)
 
 
-def evaluation(y_test, y_pred, y):
+def discretization(mode, x, k):
+    if mode == DISC_EQUAL_WIDTH:
+        return pd.cut(x, k, labels=False)
+    elif mode == DISC_EQUAL_FREQ:
+        return pd.qcut(x, k, labels=False, duplicates='drop')
+
+
+def evaluation(y_test, y_pred, args):
     # Making the Confusion Matrix
     cm = confusion_matrix(y_test, y_pred)
     print(cm)
-    # plt.figure()
-    # plot_confusion_matrix(cm, classes=[str(i) for  i in range(2)],
-    #                       title='Confusion matrix, without normalization')
+    if args.plot:
+        plt.figure()
+        plot_confusion_matrix(cm, classes=[str(i) for i in range(2)], args=args,
+                              title='Confusion matrix, without normalization')
 
-    #finding accuracy from the confusion matrix.
-    a = cm.shape
-    corrPred = 0
-    falsePred = 0
-
-    for row in range(a[0]):
-        for c in range(a[1]):
-            if row == c:
-                corrPred +=cm[row,c]
-            else:
-                falsePred += cm[row,c]
-    print('Correct predictions: ', corrPred)
-    print('False predictions', falsePred)
-    print ('Accuracy of the Naive Bayes Classification is: ', corrPred/(cm.sum()))
-    print(accuracy_score(y_test, y_pred))
-
-    print(precision_score(y_test, y_pred, average=None))
-    print(recall_score(y_test, y_pred, average=None))
-    print(f1_score(y_test, y_pred, average=None))
+    a = accuracy_score(y_test, y_pred)
+    p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, warn_for=())
+    print(a)
+    print(p)
+    print(r)
+    print(f)
 
 
 def cross_validation():
     pass
 
-def plot_confusion_matrix(cm, classes,
+
+def plot_confusion_matrix(cm, classes, args,
                           normalize=False,
                           title='Confusion matrix'):
-
     print('Confusion matrix, without normalization')
 
     print(cm)
@@ -171,4 +162,17 @@ def plot_confusion_matrix(cm, classes,
     plt.show()
 
 
-classifier(data_type)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='NaiveBayes classifier.')
+    parser.add_argument('--data-type', '-d', required=True, action='store', choices=datasets_info.keys(),
+                        help='data type')
+    parser.add_argument('--plot', '-p', default=False, action='store_true',
+                        help='draw the plots')
+    parser.add_argument('--width', '-w', default=DISC_EQUAL_FREQ, const=DISC_EQUAL_WIDTH, dest='discretization_mode',
+                        action='store_const', help='discretize using equal widths (default: equal frequency)')
+    parser.add_argument('--discretization-bins', '-b', default=0, action='store', type=int, choices=range(0, 11),
+                        help='discretize the values to n bins (default: 0, do not discretize)')
+
+    args = parser.parse_args()
+
+    classifier(args)
