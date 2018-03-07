@@ -14,7 +14,12 @@ from matplotlib import cm as colormap
 # glass
 # diabetes
 
-data_type = "diabetes"
+# discretization types:
+# equal_width_intervals
+# equal_frequency_intervals
+# ???
+
+data_type = "iris"
 
 # Importing the datasets
 iris_path = "/Users/oskam/PycharmProjects/classification/NaiveBayes/iris.txt"
@@ -61,9 +66,14 @@ def classifier(data_type):
         X = df.drop(columns=df.columns[class_column]).values
         # sns.pairplot(df, hue='class')
         # plt.show()
+    test = [2,2,3,4,6,6]
+    print(test)
+    print(discretization("equal_width_intervals", test, 3))
+    print(discretization("equal_frequency_intervals", test, 3))
 
     # Splitting the dataset into the Training set and Test set
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20, random_state = 42)
+    print(X_train)
 
     # Create a new figure and set the figsize argument so we get square-ish plots of the 4 features.
     # plt.figure(figsize=(15, 3))
@@ -94,7 +104,11 @@ def classifier(data_type):
 
     evaluation(y_test, y_pred, y)
 
-# def discretization():
+def discretization(type, X, k):
+    if type == "equal_width_intervals":
+        return pd.cut(X,k)
+    elif type == "equal_frequency_intervals":
+        return pd.qcut(X,k)
 
 
 def evaluation(y_test, y_pred, y):
@@ -126,10 +140,12 @@ def evaluation(y_test, y_pred, y):
     print(f1_score(y_test, y_pred, average=None))
 
 
+def cross_validation():
+    pass
+
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
-                          title='Confusion matrix',
-                        ):
+                          title='Confusion matrix'):
 
     print('Confusion matrix, without normalization')
 
