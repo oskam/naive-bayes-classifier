@@ -140,8 +140,6 @@ def evaluation(y_test, y_pred, args):
     print(f)
 
 
-def cross_validation():
-    pass
 
 
 def plot_confusion_matrix(cm, classes, args,
