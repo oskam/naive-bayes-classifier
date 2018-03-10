@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-
+import matplotlib.cm as color
 
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_recall_fscore_support
-from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict, StratifiedKFold, KFold, LeaveOneOut
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict, StratifiedKFold, KFold, \
+    LeaveOneOut
+from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from mdlp.discretization import MDLP
 
 # possible data types:
@@ -67,7 +68,6 @@ def classifier(args):
         sns.pairplot(df, hue=df.columns[dataset_info['class_column']])
         plt.show()
 
-
     # Discretize values before training
     if args.discretization_bins > 0:
         if args.discretization_mode == DISC_MDLP:
@@ -75,7 +75,7 @@ def classifier(args):
             X = transformer.fit_transform(X, y)
         else:
             for column in X:
-                bins = discretization(args.discretization_mode, X[column], y, args.discretization_bins)
+                bins = discretization(args.discretization_mode, X[column], args.discretization_bins)
                 X[column] = bins
 
     # Splitting the dataset into the Training set and Test set
@@ -83,13 +83,13 @@ def classifier(args):
 
     # Create a new figure and set the figsize argument so we get square-ish plots of the 4 features.
     if args.plot:
-        plt.figure(figsize=(15, 3))
+        plt.figure(figsize=(10, 3))
 
     # Iterate over the features, creating a subplot with a histogram for each one.
     if args.plot:
-        for feature in range(X_train.shape[1]):
-            plt.subplot(1, len(X_train.columns), feature + 1)
-            plt.hist(X_train.values[:, feature], 20)
+        # for feature in range(X_train.shape[1]):
+        #     plt.subplot(1, len(X_train.columns), feature + 1)
+        #     plt.hist(X_train.values[:, feature], 20)
         plt.show()
 
     # Fitting Naive Bayes Classification to the Training set
@@ -114,7 +114,7 @@ def classifier(args):
     evaluation(y_test, y_pred, args)
 
 
-def discretization(mode, x, y, k):
+def discretization(mode, x, k):
     if mode == DISC_EQUAL_WIDTH:
         return pd.cut(x, k, labels=False)
     elif mode == DISC_EQUAL_FREQ:
@@ -128,8 +128,7 @@ def evaluation(y_test, y_pred, args):
     print(cm)
     if args.plot:
         plt.figure()
-        plot_confusion_matrix(cm, classes=[str(i) for i in range(2)], args=args,
-                              title='Confusion matrix, without normalization')
+        plot_confusion_matrix(cm, classes=[str(i) for i in range(0,2)], args=args)
 
     a = accuracy_score(y_test, y_pred)
     p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, warn_for=())
@@ -156,20 +155,17 @@ def cross_validation(model, x, y):
 
 
 def plot_confusion_matrix(cm, classes, args,
-                          normalize=False,
                           title='Confusion matrix'):
-    print('Confusion matrix, without normalization')
-
     print(cm)
 
-    plt.imshow(cm, interpolation='nearest')
+    plt.imshow(cm, interpolation='nearest', cmap=color.Reds)
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes)
 
-    fmt = '.2f' if normalize else 'd'
+    fmt = 'd'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
@@ -188,7 +184,7 @@ if __name__ == "__main__":
                         help='data type')
     parser.add_argument('--plot', '-p', default=False, action='store_true',
                         help='draw the plots')
-    parser.add_argument('--discretization-mode', '-m', default=DISC_EQUAL_FREQ,  action='store', type=int,
+    parser.add_argument('--discretization-mode', '-m', default=DISC_EQUAL_FREQ, action='store', type=int,
                         choices=[DISC_EQUAL_FREQ, DISC_EQUAL_WIDTH, DISC_MDLP],
                         help='discretize using equal widths (0(default): equal frequency, 1: equal width, 2: mdlp)')
     parser.add_argument('--discretization-bins', '-b', default=0, action='store', type=int, choices=range(0, 11),
