@@ -6,9 +6,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict, StratifiedKFold, KFold, LeaveOneOut
 from sklearn.naive_bayes import MultinomialNB
+from mdlp.discretization import MDLP
 
 # possible data types:
 # iris
@@ -19,9 +21,11 @@ from sklearn.naive_bayes import MultinomialNB
 # discretization types:
 # equal_width_intervals
 # equal_frequency_intervals
-# ???
-DISC_EQUAL_WIDTH = 0
-DISC_EQUAL_FREQ = 1
+# MDLP
+
+DISC_EQUAL_FREQ = 0
+DISC_EQUAL_WIDTH = 1
+DISC_MDLP = 2
 
 DATA_TYPE = "iris"
 
@@ -63,15 +67,19 @@ def classifier(args):
         sns.pairplot(df, hue=df.columns[dataset_info['class_column']])
         plt.show()
 
+
     # Discretize values before training
     if args.discretization_bins > 0:
-        for column in X:
-            bins = discretization(args.discretization_mode, X[column], args.discretization_bins)
-            X[column] = bins
+        if args.discretization_mode == DISC_MDLP:
+            transformer = MDLP()
+            X = transformer.fit_transform(X, y)
+        else:
+            for column in X:
+                bins = discretization(args.discretization_mode, X[column], y, args.discretization_bins)
+                X[column] = bins
 
     # Splitting the dataset into the Training set and Test set
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
-    # print(X_train)
 
     # Create a new figure and set the figsize argument so we get square-ish plots of the 4 features.
     if args.plot:
@@ -84,39 +92,29 @@ def classifier(args):
             plt.hist(X_train.values[:, feature], 20)
         plt.show()
 
-    # Fitting Naive Bayes Classification to the Training set with linear kernel
-    # nvclassifier = GaussianNB()
-    nvclassifier = MultinomialNB(alpha=1.0)
-    nvclassifier.fit(X_train, y_train)
+    # Fitting Naive Bayes Classification to the Training set
+    # classifier = GaussianNB()
+    classifier = MultinomialNB(alpha=1.0)
+    classifier.fit(X_train, y_train)
 
-    # Perform N-fold cross validation
-    cv_N = 10
-    # scores = cross_val_score(nvclassifier, X, y, cv=cv_N) #???
-
-    skf = StratifiedKFold(n_splits=cv_N)
-    kf = KFold(n_splits=cv_N)
-    loo = LeaveOneOut()
-    StratifiedKFold(n_splits=2, shuffle=False)
-    scores = cross_val_score(nvclassifier, X, y, cv=skf)
-
-    print("Cross - validated scores: " + str(scores))
+    cross_validation(classifier, X, y)
 
     # Predicting the Test set results
-    y_pred = nvclassifier.predict(X_test)
+    y_pred = classifier.predict(X_test)
 
     # ---------------------------------
 
-    # lets see the actual and predicted value side by side
-    y_compare = np.vstack((y_test, y_pred)).T
+    # # lets see the actual and predicted value side by side
+    # y_compare = np.vstack((y_test, y_pred)).T
 
     # actual value on the left side and predicted value on the right hand side
     # printing the top 5 values
-    print(y_compare[:5, :])
+    # print(y_compare[:5, :])
 
     evaluation(y_test, y_pred, args)
 
 
-def discretization(mode, x, k):
+def discretization(mode, x, y, k):
     if mode == DISC_EQUAL_WIDTH:
         return pd.cut(x, k, labels=False)
     elif mode == DISC_EQUAL_FREQ:
@@ -126,6 +124,7 @@ def discretization(mode, x, k):
 def evaluation(y_test, y_pred, args):
     # Making the Confusion Matrix
     cm = confusion_matrix(y_test, y_pred)
+    print("Confusion matrix:")
     print(cm)
     if args.plot:
         plt.figure()
@@ -134,14 +133,26 @@ def evaluation(y_test, y_pred, args):
 
     a = accuracy_score(y_test, y_pred)
     p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, warn_for=())
-    print(a)
-    print(p)
-    print(r)
-    print(f)
+    print("Accuracy:" + str(a))
+    print("Precision: " + str(p))
+    print("Recall:  " + str(r))
+    print("Fscore :" + str(f))
 
 
-def cross_validation():
-    pass
+def cross_validation(model, x, y):
+    # Perform N-fold cross validation
+    cv_N = 10
+    kf = KFold(n_splits=cv_N)
+    scores = cross_val_score(model, x, y, cv=kf)
+    print("Cross-validated scores: " + str(scores))
+
+    # Perform N-fold cross stratified validation
+    skf = StratifiedKFold(n_splits=cv_N)
+    # kf = KFold(n_splits=cv_N)
+    # loo = LeaveOneOut()
+    StratifiedKFold(n_splits=2, shuffle=False)
+    scores = cross_val_score(model, x, y, cv=skf)
+    print("Stratified Cross-validated scores: " + str(scores))
 
 
 def plot_confusion_matrix(cm, classes, args,
@@ -177,8 +188,9 @@ if __name__ == "__main__":
                         help='data type')
     parser.add_argument('--plot', '-p', default=False, action='store_true',
                         help='draw the plots')
-    parser.add_argument('--width', '-w', default=DISC_EQUAL_FREQ, const=DISC_EQUAL_WIDTH, dest='discretization_mode',
-                        action='store_const', help='discretize using equal widths (default: equal frequency)')
+    parser.add_argument('--discretization-mode', '-m', default=DISC_EQUAL_FREQ,  action='store', type=int,
+                        choices=[DISC_EQUAL_FREQ, DISC_EQUAL_WIDTH, DISC_MDLP],
+                        help='discretize using equal widths (0(default): equal frequency, 1: equal width, 2: mdlp)')
     parser.add_argument('--discretization-bins', '-b', default=0, action='store', type=int, choices=range(0, 11),
                         help='discretize the values to n bins (default: 0, do not discretize)')
 
