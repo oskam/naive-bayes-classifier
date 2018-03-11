@@ -1,17 +1,22 @@
 import argparse
 import itertools
 
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.cm as color
 
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_recall_fscore_support
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_recall_fscore_support, precision_score, \
+    recall_score, f1_score
 from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict, StratifiedKFold, KFold, \
     LeaveOneOut
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from mdlp.discretization import MDLP
+
+warnings.filterwarnings('ignore')
 
 # possible data types:
 # iris
@@ -132,10 +137,17 @@ def evaluation(y_test, y_pred, args):
 
     a = accuracy_score(y_test, y_pred)
     p, r, f, _ = precision_recall_fscore_support(y_test, y_pred, warn_for=())
-    print("Accuracy:" + str(a))
+    print("Accuracy: " + str(a))
     print("Precision: " + str(p))
+    print("Precision Weighted: " + str(precision_score(y_test, y_pred, average="weighted")))
+    print("Precision Macro: " + str(precision_score(y_test, y_pred, average="macro")))
     print("Recall:  " + str(r))
-    print("Fscore :" + str(f))
+    print("Recall Weighted: " + str(recall_score(y_test, y_pred, average="weighted")))
+    print("Recall Macro: " + str(recall_score(y_test, y_pred, average="macro")))
+    print("Fscore: " + str(f))
+    print("Fscore Weighted: " + str(f1_score(y_test, y_pred, average="weighted")))
+    print("Fscore Micro: " + str(f1_score(y_test, y_pred, average="micro")))
+    print("Fscore Macro: " + str(f1_score(y_test, y_pred, average="macro")))
 
 
 def cross_validation(model, x, y):
