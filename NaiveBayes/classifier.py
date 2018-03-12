@@ -92,9 +92,9 @@ def classifier(args):
 
     # Iterate over the features, creating a subplot with a histogram for each one.
     if args.plot:
-        # for feature in range(X_train.shape[1]):
-        #     plt.subplot(1, len(X_train.columns), feature + 1)
-        #     plt.hist(X_train.values[:, feature], 20)
+        for feature in range(X_train.shape[1]):
+            plt.subplot(1, len(X_train.columns), feature + 1)
+            sns.distplot(X_train.values[:, feature])
         plt.show()
 
     # Fitting Naive Bayes Classification to the Training set
@@ -106,6 +106,7 @@ def classifier(args):
 
     # Predicting the Test set results
     y_pred = classifier.predict(X_test)
+    print(y_pred)
 
     # ---------------------------------
 
@@ -161,7 +162,6 @@ def cross_validation(model, x, y):
     skf = StratifiedKFold(n_splits=cv_N)
     # kf = KFold(n_splits=cv_N)
     # loo = LeaveOneOut()
-    StratifiedKFold(n_splits=2, shuffle=False)
     scores = cross_val_score(model, x, y, cv=skf)
     print("Stratified Cross-validated scores: " + str(scores))
 
