@@ -11,8 +11,7 @@ import matplotlib.cm as color
 
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_recall_fscore_support, precision_score, \
     recall_score, f1_score
-from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict, StratifiedKFold, KFold, \
-    LeaveOneOut
+from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict, StratifiedKFold, KFold
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from mdlp.discretization import MDLP
 
@@ -108,15 +107,6 @@ def classifier(args):
     y_pred = classifier.predict(X_test)
     print(y_pred)
 
-    # ---------------------------------
-
-    # # lets see the actual and predicted value side by side
-    # y_compare = np.vstack((y_test, y_pred)).T
-
-    # actual value on the left side and predicted value on the right hand side
-    # printing the top 5 values
-    # print(y_compare[:5, :])
-
     evaluation(y_test, y_pred, args)
 
 
@@ -160,8 +150,6 @@ def cross_validation(model, x, y):
 
     # Perform N-fold cross stratified validation
     skf = StratifiedKFold(n_splits=cv_N)
-    # kf = KFold(n_splits=cv_N)
-    # loo = LeaveOneOut()
     scores = cross_val_score(model, x, y, cv=skf)
     print("Stratified Cross-validated scores: " + str(scores))
 
